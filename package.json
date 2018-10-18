@@ -1,0 +1,25 @@
+{
+    "name"         : "node-red-contrib-http-listener",
+    "version"      : "1.0.0",
+    "description"  : "A Node Red node for listening to http requests and responses",
+    "dependencies": {
+    },
+    "author": {
+        "name": "Bart Butenaers"
+    },
+    "license": "Apache-2.0",
+    "keywords": [ "node-red", "http", "request", "response", "intercept", "hook" ],
+    "bugs": {
+        "url": "https://github.com/bartbutenaers/node-red-contrib-http-listener/issues"
+    },
+    "homepage": "https://github.com/bartbutenaers/node-red-contrib-http-listener",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bartbutenaers/node-red-contrib-http-listener.git"
+    },
+    "node-red"     : {
+        "nodes": {
+            "http-listener": "http_listener.js"
+        }
+    }
+}
