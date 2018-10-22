@@ -11,12 +11,12 @@
     "license": "Apache-2.0",
     "keywords": [ "node-red", "http", "request", "response", "intercept", "hook", "log" ],
     "bugs": {
-        "url": "https://github.com/bartbutenaers/node-red-contrib-http-listener/issues"
+        "url": "https://github.com/bartbutenaers/node-red-contrib-http-logger/issues"
     },
-    "homepage": "https://github.com/bartbutenaers/node-red-contrib-http-listener",
+    "homepage": "https://github.com/bartbutenaers/node-red-contrib-http-logger",
     "repository": {
         "type": "git",
-        "url": "https://github.com/bartbutenaers/node-red-contrib-http-listener.git"
+        "url": "https://github.com/bartbutenaers/node-red-contrib-http-logger.git"
     },
     "node-red"     : {
         "nodes": {
