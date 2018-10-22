@@ -1,0 +1,54 @@
+<!--
+  Copyright 2018, Bart Butenaers
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<script type="text/javascript">
+    RED.nodes.registerType('http-logger',{
+        category: 'function',
+        color: '#E9967A',
+        defaults: {
+            name: {value:""},      
+            filter: {value:""}
+        },        
+        inputs:1,
+        outputs:1,
+        icon: "hacker.png",
+        label: function() {
+            return this.name||"Http(s) logger";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="http-logger">
+    <div class="form-row">
+        <label for="node-input-filter"><i class="fa fa-filter"></i> URL filter</label>
+        <input type="text" id="node-input-filter" placeholder="Enter filter">
+    </div>
+    </br>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="http-logger">
+    <p>A node to log http(s) requests and their corresponding responses.</p>
+    <p>These http (or https) requests can be triggered by other nodes in the Node-RED flow (e.g. HttpRequest node).  As soon as a response has arrived, this node will send an output message containing both the request and the response:
+    <ul>
+        <li><code>msg.request</code> contains the http(s) request</li>
+        <li><code>msg.response</code> contains the corresponding http(s) response</li>
+        <li><code>topic</code> will be <i>'success'</i> or <i>'error'</i></li>
+    </ul>
+    The logger can be started by sending an input message with <code>msg.payload=true</code>, and it can be stopped with <code>msg.payload=false</code>.
+    </p>
+    <p><strong>URL filter:</strong><br/>
+    To avoid overloading the Node-RED flow with large amounts of messages, it is advised to only log requests from specific URLs.  Only requests will be logged, whose URL <i>contains</i> the specified URL filter text.</p>
+</script>
