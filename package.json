@@ -9,7 +9,7 @@
         "name": "Bart Butenaers"
     },
     "license": "Apache-2.0",
-    "keywords": [ "node-red", "http", "request", "response", "intercept", "hook" ],
+    "keywords": [ "node-red", "http", "request", "response", "intercept", "hook", "log" ],
     "bugs": {
         "url": "https://github.com/bartbutenaers/node-red-contrib-http-listener/issues"
     },
@@ -20,7 +20,7 @@
     },
     "node-red"     : {
         "nodes": {
-            "http-listener": "http_listener.js"
+            "http-logger": "http_logger.js"
         }
     }
 }
