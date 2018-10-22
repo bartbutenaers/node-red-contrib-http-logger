@@ -1,5 +1,5 @@
 {
-    "name"         : "node-red-contrib-http-listener",
+    "name"         : "node-red-contrib-http-logger",
     "version"      : "1.0.1",
     "description"  : "A Node Red node for listening to http requests and responses",
     "dependencies": {
