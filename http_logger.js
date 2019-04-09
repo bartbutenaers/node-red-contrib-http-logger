@@ -15,7 +15,7 @@
  **/
  module.exports = function(RED) {
     var settings = RED.settings;
-    var globalLog = require('global-request-logger'); 
+    var Mitm = require("mitm"); 
 
     function HttpLoggerNode(config) {
         RED.nodes.createNode(this, config);
@@ -23,63 +23,31 @@
 
         var node = this;
         
-        if (node.successHandler && node.errorHandler) {
+        if (node.mitm) {
             node.status({fill:"blue", shape:"dot", text:"listening"});
-        }
-
-        function handleSuccess(request, response) {
-            if (!node.filter || node.filter.trim() === "" || request.href.indexOf(node.filter) >= 0) { 
-                node.send({request: request, response:response, topic:"success"});
-            }
-        }
-
-        function handleError(request, response) {
-            if (!node.filter || node.filter.trim() === "" || request.href.indexOf(node.filter) >= 0) { 
-                node.send({request: request, response:response, topic:"error"});
-            }
         }
 
         function startListening() {
             // When no globalLog is enabled yet, let's initialize it now.
             // As soon as we do this, the globalLog (singleton) will start listening to http requests in NodeJs,
-            if (!globalLog.isEnabled) {
-                globalLog.initialize();
-            }
-
-            // Register a success handler, only if not registered yet
-            if (!node.successHandler) {
-                node.successHandler = handleSuccess;
-                globalLog.on('success', node.successHandler);
-            }
-
-            // Register an error handler, only if not registered yet
-            if (!node.errorHandler) {
-                node.errorHandler = handleError;
-                globalLog.on('error', node.errorHandler);
+            if (!node.mitm) {
+                node.mitm = Mitm();
+             
+                // Start listening to http(s) responses, and the corresponding requests
+                node.mitm.on("request", function(req, res) {
+                    if (!node.filter || node.filter.trim() === "" || request.href.indexOf(node.filter) >= 0) { 
+                        node.send({request: request, response:response, topic:"success"});
+                    }
+                })
             }
             
             node.status({fill:"blue", shape:"dot", text:"listening"});
         }
 
         function stopListening() {
-            // Unregister the success handler, if registered already
-            if (node.successHandler) {
-                globalLog.removeListener('success', node.successHandler);
-                node.successHandler = null;
-            }
-
-            // Unregister the error handler, if registered already
-            if (node.errorHandler) {
-                globalLog.removeListener('error', node.errorHandler);
-                node.errorHandler = null;
-            }
-
-            // When the globalLog is still enabled but no nodes are listening anymore, we can end the globalLog.
-            // As soon as we do this, the globalLog (singleton) will stop listening to http requests in NodeJs.
-            if (globalLog.isEnabled) {
-                if (globalLog.listenerCount('success') === 0 && globalLog.listenerCount('error') === 0) {
-                    globalLog.end();
-                }
+            if (node.mitm) {
+                node.mitm.disable();
+                node.mitm = null;
             }
 
             node.status({});            
@@ -102,8 +70,6 @@
             // Otherwise we would end up with multiple listeners for this node (e.g. after a deploy), which would
             // result in duplicate output messages...
             stopListening();
-            
-            this.status({});   
         });
     }
 
