@@ -3,7 +3,7 @@
     "version"      : "1.0.1",
     "description"  : "A Node Red node for listening to http requests and responses",
     "dependencies": {
-        "global-request-logger": "0.1.1"
+        "mitm": "1.7.0"
     },
     "author": {
         "name": "Bart Butenaers"
