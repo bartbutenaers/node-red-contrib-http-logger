@@ -4,7 +4,7 @@
     "description"  : "A Node Red node for listening to http requests and responses",
     "dependencies": {
         "mitm": "1.7.0",
-        "lodash", "4.17.11"
+        "lodash": "4.17.11"
     },
     "author": {
         "name": "Bart Butenaers"
