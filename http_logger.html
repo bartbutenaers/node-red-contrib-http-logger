@@ -16,7 +16,8 @@
         color: '#E9967A',
         defaults: {
             name: {value:""},      
-            filter: {value:""}
+            filter: {value:""},
+            returnFormat: {value:"txt"}
         },        
         inputs:1,
         outputs:1,
@@ -31,6 +32,14 @@
     <div class="form-row">
         <label for="node-input-filter"><i class="fa fa-filter"></i> URL filter</label>
         <input type="text" id="node-input-filter" placeholder="Enter filter">
+    </div>
+    <div class="form-row">
+        <label for="node-input-returnFormat"><i class="fa fa-arrow-left"></i> Return</label>
+        <select type="text" id="node-input-returnFormat" style="width:70%;">
+            <option value="txt">UTF-8 string</option>
+            <option value="bin">Binary buffer</option>
+            <option value="obj">Parsed JSON object</option>
+        </select>
     </div>
     </br>
     <div class="form-row">
@@ -51,4 +60,6 @@
     </p>
     <p><strong>URL filter:</strong><br/>
     To avoid overloading the Node-RED flow with large amounts of messages, it is advised to only log requests from specific URLs.  Only requests will be logged, whose URL <i>contains</i> the specified URL filter text.</p>
+    <p><strong>Return:</strong><br/>
+    The format of the request body and response body can be selected.</p>
 </script>
