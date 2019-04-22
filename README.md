@@ -1,5 +1,7 @@
 # node-red-contrib-http-logger
-A Node Red node for logging HTTP (or HTTPS) requests and responses
+A Node Red node for logging HTTP (or HTTPS) requests and responses.
+
+This node is based on the [mitm](https://www.npmjs.com/package/mitm) library (Man In The Middle) for intercepting http(s) requests, which has been implemented by Andri Möll.  So a lot of credits go Andri, who also supported me during development of this Node-RED node. 
 
 ## Install
 Run the following npm command in your Node-RED user directory (typically ~/.node-red):
