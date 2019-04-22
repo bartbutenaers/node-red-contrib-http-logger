@@ -19,6 +19,7 @@
     var Mitm = require("mitm");
     var _ = require('lodash');
     var events = require('events');
+    var cloneDeep = require('clone-deep');
     
     // ================================================================================================
     // Originally this node was based on the 'global-request-logger' library.  However since that 
@@ -103,8 +104,8 @@
             logInfo.request.body.push(chunk);
         });
         request.on('end', () => {
-            // The entire request body has been intercepted, so store it
-            logInfo.request.body = logInfo.request.body.join('');
+            // The entire request body has been intercepted, so store it (after concatenating all the buffer chunks)
+            logInfo.request.body = Buffer.concat(logInfo.request.body);
         });      
 
         // Forward the original request, which means we create a new request.  As soon as the response arrives, we 
@@ -113,6 +114,7 @@
             protocol: request.connection.encrypted ? "https:" : "http:",
             host: request.headers.host,
             path: request.url,
+            encoding: null,  // Force NodeJs to return a Buffer (instead of a string)
             bypass_mitm: true // Proxying
         }, function(newRes) {
             response.writeHead(newRes.statusCode, newRes.headers);
@@ -127,8 +129,8 @@
                 logInfo.response.body.push(chunk);
             });
             newRes.on('end', function() {
-                // The entire response body has been intercepted, so store it
-                logInfo.response.body = logInfo.response.body.join('');
+                // The entire response body has been intercepted, so store it (after concatenating all the buffer chunks)
+                logInfo.response.body = Buffer.concat(logInfo.response.body);
                 
                 // At this moment both the request and response information are complete, so inform all http-logger nodes
                 mitm_emitter.emit('request_response', logInfo);
@@ -139,6 +141,7 @@
     function HttpLoggerNode(config) {
         RED.nodes.createNode(this, config);
         this.filter = config.filter;
+        this.returnFormat = config.returnFormat || "txt";
 
         var node = this;
         
@@ -148,8 +151,41 @@
             
             // When a filter is available, check whether the URL (of the the http request) matches the filter.
             if( !node.filter || node.filter.trim() === "" || (href && href.indexOf(node.filter) >= 0)) {
+                // Clone the logInfo, because it 'could' be send in multiple output messages (in case multiple http-logger nodes are 
+                // filtering the same URL).  And we need to avoid contention conflicts...
+                let logInfoClone = cloneDeep(logInfo);
+                
+                try {
+                    // Convert the (request/response) body to the required return type
+                    switch (node.returnFormat) {
+                        case "txt":
+                            logInfoClone.request.body = logInfoClone.request.body.toString('utf8');
+                            logInfoClone.response.body = logInfoClone.response.body.toString('utf8');
+                            break;
+                        case "bin":
+                            // Do nothing because NodeJs offers (request/response) bodies as buffers already
+                            break;
+                        case "obj":
+                            // Empty strings cannot be parsed (Unexpected end of input ...), so convert them to something valid.
+                            // See https://stackoverflow.com/questions/30621802/why-does-json-parse-fail-with-the-empty-string
+                            if (!logInfoClone.request.body || logInfoClone.request.body.length === 0) {
+                                logInfoClone.request.body = '{}';
+                            }
+                            if (!logInfoClone.response.body || logInfoClone.response.body.length === 0) {
+                                logInfoClone.response.body = '{}';
+                            }
+                        
+                            logInfoClone.request.body = JSON.parse(logInfoClone.request.body);
+                            logInfoClone.response.body = JSON.parse(logInfoClone.response.body);
+                            break;
+                    }
+                }
+                catch(e) { 
+                    node.warn("Cannot convert body to the specified type"); 
+                }
+                
                 // Send an output message containing both the request and response
-                node.send({request: logInfo.request, response: logInfo.response, topic: "success"});
+                node.send({request: logInfoClone.request, response: logInfoClone.response, topic: "success"});
             }
         }
         
