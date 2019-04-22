@@ -42,6 +42,20 @@ When e.g. the HttpRequest node sends a request to *https://api.ipify.org* and th
 
 If ***all*** requests need to be intercepted, the URL field need to be ***empty***!  If you want e.g. only intercept the secure requests, add *'https'* as filter text. 
 
+## Return (body format)
+Select the data type (JSON object, UTF8-string, Buffer) of both the request body and the response body.
+
+Following flow logs the bodies in the 3 available formats, as soon as a http request is intercepted:
+
+![Return type](/images/listener_return.png)
+
+```
+[{"id":"f57450ea.ac8b","type":"http-logger","z":"5a89baed.89e9c4","name":"","filter":"ipify","returnFormat":"txt","x":400,"y":1000,"wires":[["f164a8b7.74cde8"]]},{"id":"1f25cbf8.71f354","type":"http request","z":"5a89baed.89e9c4","name":"","method":"GET","ret":"obj","paytoqs":false,"url":"https://api.ipify.org?format=json","tls":"","proxy":"","authType":"basic","x":390,"y":940,"wires":[["9f433261.35598"]]},{"id":"cedfb31a.2f4ee","type":"inject","z":"5a89baed.89e9c4","name":"Send request","topic":"","payload":"","payloadType":"date","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":940,"wires":[["1f25cbf8.71f354"]]},{"id":"9f433261.35598","type":"debug","z":"5a89baed.89e9c4","name":"Http response 1","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":600,"y":940,"wires":[]},{"id":"85b98128.01148","type":"inject","z":"5a89baed.89e9c4","name":"Start logging","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":1000,"wires":[["f57450ea.ac8b","58b2d51c.200b4c","985b3d33.f275a"]]},{"id":"f164a8b7.74cde8","type":"debug","z":"5a89baed.89e9c4","name":"Intercepted request as string","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":640,"y":1000,"wires":[]},{"id":"58b2d51c.200b4c","type":"http-logger","z":"5a89baed.89e9c4","name":"","filter":"ipify","returnFormat":"obj","x":400,"y":1060,"wires":[["c35e45c7.b75fb8"]]},{"id":"c35e45c7.b75fb8","type":"debug","z":"5a89baed.89e9c4","name":"Intercepted request as json object","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":660,"y":1060,"wires":[]},{"id":"94cb8a6e.256c18","type":"comment","z":"5a89baed.89e9c4","name":"Get WAN address from https://api.ipify.org?format=json","info":"","x":320,"y":900,"wires":[]},{"id":"985b3d33.f275a","type":"http-logger","z":"5a89baed.89e9c4","name":"","filter":"ipify","returnFormat":"bin","x":400,"y":1120,"wires":[["e8d8499a.c63698"]]},{"id":"e8d8499a.c63698","type":"debug","z":"5a89baed.89e9c4","name":"Intercepted request as buffer","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":640,"y":1120,"wires":[]}]
+```
+Which results in following debug panel entries:
+
+![Return type debug](/images/listener_return_debug.png)
+
 ## Example flow
 Multiple http-logger nodes can be used simultaneously.  A different (url) filter can be specified in each of those nodes.
 
