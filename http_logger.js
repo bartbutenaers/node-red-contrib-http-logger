@@ -50,7 +50,7 @@
     // See my mitm issue (https://github.com/moll/node-mitm/issues/58#issuecomment-484269749).
     // So create 1 mitm instance, which all http-logger nodes will share.
     // (see https://discourse.nodered.org/t/sharing-a-single-instance/10342)
-    var mitm_singleton = new Mitm();
+    var mitm_singleton = Mitm();
     
     // Keep track which http-logger nodes are listening to the mitm_singleton.
     // Indeed the event emitter in mitm isn't accessible outside the instance, so we will workaround that ...
