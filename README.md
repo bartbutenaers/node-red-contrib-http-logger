@@ -1,7 +1,7 @@
 # node-red-contrib-http-logger
 A Node Red node for logging HTTP (or HTTPS) requests and responses.
 
-This node is based on the [mitm](https://www.npmjs.com/package/mitm) library (Man In The Middle) for intercepting http(s) requests, which has been implemented by Andri Möll.  So a lot of credits go Andri, who also supported me during development of this Node-RED node. 
+This node is based on the [interceptors](https://www.npmjs.com/package/@mswjs/interceptors) library (Man In The Middle), a low-level HTTP/HTTPS/XHR/fetch request interception library.  This node can intercept both http and https requests and the related responses. 
 
 ## Install
 Run the following npm command in your Node-RED user directory (typically ~/.node-red):
@@ -10,9 +10,11 @@ npm install node-red-contrib-http-logger
 ```
 
 ## Usage
-In Node-RED multiple nodes are available for sending requests over HTTP and HTTPS (HttpRequest node, [Multipart stream node](https://github.com/bartbutenaers/node-red-contrib-multipart-stream-decoder), ...).  Since Node-RED runs on top of NodeJS, all the corresponding data transfer will be handle by the http and https modules in NodeJS.  However these modules will be adding information to the http(s) requests behind the scenes, and that final request will not be visible to the Node-RED user.
+In Node-RED multiple nodes are available for sending requests over HTTP and HTTPS (HttpRequest node, ...).  Since Node-RED runs on top of NodeJS, all the corresponding data transfer will be handle by the http and https modules in NodeJS.  However these modules will be adding information to the http(s) requests behind the scenes, and that final request will not be visible to the Node-RED user.
 
 This might be a problem during troubleshooting.  For example your IP camera works fine in the browser, but when you use the same URL/username/password in Node-RED it fails.  This means that your browser and Node-RED send a different request to your IP camera.  To be able to solve this problem, you will need to compare both requests. 
+
+OFten people ask on the Node-RED [Discourse](nodered.discourse.org) forum: when I access an url via ***curl*** then everything works fine, but it fails when using the same URL via the http-request node.  In that case this node can be used to see the http request being send by NodeJs, and compare it to the http request being send by curl (which can be displayed using `curl -v` to get a verbose output log).
 
 Using this node, it will be possible to **intercept** the HTTP(S) requests and responses from NodeJS (without having to use external tools like Wireshark ...).  The following diagram summarizes how this HTTP logger node can be used, for example in conjuction with the HttpRequest node:
 
