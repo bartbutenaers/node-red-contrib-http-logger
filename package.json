@@ -3,7 +3,7 @@
     "version"      : "3.0.0",
     "description"  : "A Node Red node for listening to http requests and responses",
     "dependencies": {
-        "@mswjs/interceptors": "^0.12.7",
+        "@mswjs/interceptors": "^0.18.0",
         "clone-deep": "^4.0.1"
     },
     "author": {
