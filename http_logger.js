@@ -16,63 +16,203 @@
  module.exports = function(RED) {
     const url = require('url');
     const cloneDeep = require('clone-deep');
-    const { createInterceptor } = require('@mswjs/interceptors');
-    const nodeInterceptors = require('@mswjs/interceptors/lib/presets/node').default;
+    const { BatchInterceptor } = require('@mswjs/interceptors');
+    const { ClientRequestInterceptor } = require('@mswjs/interceptors/lib/interceptors/ClientRequest');
+    const { XMLHttpRequestInterceptor } = require('@mswjs/interceptors/lib/interceptors/XMLHttpRequest');
+    const { FetchInterceptor } = require('@mswjs/interceptors/lib/interceptors/fetch');
+    
+    // Shared object between N instances of this node
+    var sharedMswjsInterceptor;
 
     function HttpLoggerNode(config) {
         RED.nodes.createNode(this, config);
         this.filter = config.filter;
         this.returnFormat = config.returnFormat || "txt";
-        this.listening = false;
 
         var node = this;
         
-        // Enable request interception in the current process.
-        // Using nodeInterceptors is the recommended way to ensure all requests get intercepted, regardless of their origin.
-        // Currently following interceptors are supported: ClientRequest, XMLHttpRequest, fetch.
-        node.interceptor = createInterceptor({
-          modules: nodeInterceptors,
-          resolver(request, ref) {
-            // Optionally, return a mocked response.
-          },
-        })
+        node.status({});
         
-        function startListening() {
-            // Handle the intercepted responses.
-            // This event handler needs to be applied every time again, because the interceptor.restore() will remove the event handler!
-            node.interceptor.on('response', function(request, response) {
-                var href = request.url.href;
+        // Only the first HttpLoggerNode will create the shared object once
+        if(!sharedMswjsInterceptor) {
+            sharedMswjsInterceptor = {
+                // Using nodeInterceptors is the recommended way to ensure all requests get intercepted, regardless of their origin.
+                // Currently following interceptors are supported: ClientRequest, XMLHttpRequest, fetch.
+                interceptor: new BatchInterceptor({
+                    name: 'node-red-interceptor',
+                    interceptors: [
+                        new ClientRequestInterceptor(),
+                        new XMLHttpRequestInterceptor(),
+                        new FetchInterceptor()
+                    ],
+                }),
+                listeners: new Map(),
+                startListening: function(nodeId, callback) {
+                    if(this.listeners.size === 0) {
+                        var that = this;
+                        // Handle the intercepted responses.
+                        // This event handler needs to be applied every time again, because the interceptor.restore() will remove the event handler!
+                        this.interceptor.on('response', async function(response, request) {
+                            // Forward the request to all the callback functions of HttpLogger nodes that are currently listening to requests
+                            that.listeners.forEach(function(listener, index, array) {
+                                listener(response, request);
+                            })
+                        })
                 
-                // When a filter is available, check whether the URL (of the the http request) matches the filter.
-                if( !node.filter || node.filter.trim() === "" || (href && href.indexOf(node.filter) >= 0)) {      
-                    var requestToSend = {
-                        url:        request.url.href,
-                        port:       request.url.port,
-                        path:       request.url.pathname,
-                        host:       request.url.host,
-                        method:     request.method,
-                        headers:    cloneDeep(request.headers._headers),
-                        body:       request.body
+                        // Enable request interception in the current process, when the first callback function has been registered
+                        this.interceptor.apply();
                     }
                     
+                    this.listeners.set(nodeId, callback);
+                },
+                stopListening: function(nodeId) {
+                    this.listeners.delete(nodeId);
+                    
+                    if(this.listeners.size === 0) {
+                        // Disable request interception in the current process, when the no callback function have been registered
+                        node.interceptor.dispose();
+                    }
+                },
+                isListening: function(nodeId) {
+                    return this.listeners.has(nodeId);
+                }
+            }
+        }
+
+        async function startListening() {
+            // Register a callback function for this node, which will handle the request
+            sharedMswjsInterceptor.startListening(node.id, async function(response, request) {
+                // When a filter is available, check whether the URL (of the the http request) matches the filter.
+                if( !node.filter || node.filter.trim() === "" || (request.url && request.url.indexOf(node.filter) >= 0)) {
+                    // Get all the required information from the url (as string)
+                    var parsedUrl = url.parse(request.url);
+                    
+                    var requestToSend = {
+                        href:       parsedUrl.href,
+                        port:       parsedUrl.port,
+                        path:       parsedUrl.path,
+                        host:       parsedUrl.host,
+                        method:     request.method,
+                        headers:    {}
+                    }
+                    
+                    // When no port has been specified explicit, the default port is being used (based on the protocol)
+                    if(requestToSend.port == null) {
+                        var protocol = parsedUrl.protocol.replace(":", "");
+                        
+                        if(protocol === "https") {
+                            requestToSend.port = 443;
+                        }
+                        else {
+                            requestToSend.port = 80;
+                        }
+                    }
+
+                    request.headers.forEach(function(headerValue, headerName) {
+                        requestToSend.headers[headerName] = headerValue;
+                    })
+
                     var responseToSend = {
-                        status:     response.status,
+                        statusCode: response.status,
                         statusText: response.statusText,
-                        headers:    cloneDeep(response.headers._headers),
-                        body:       response.body
+                        headers:    {}
+                    }
+                    
+                    response.headers.forEach(function(headerValue, headerName) {
+                        responseToSend.headers[headerName] = headerValue;
+                    })
+                    
+                    var requestBody = null;
+                    
+                    if(request.body) {
+                        // The request body is an Uint8Array
+                        var requestBodyReader = request.clone().body.getReader();
+                        
+                        var requestLength = request.headers.get("content-length");
+                        var requestOffset = 0;
+                        var requestBody = new Uint8Array(requestLength);
+
+                        // Insert the chunks at their offset into the requestBody Uint8Array, to restore the original body again
+                        while (true) {
+                            var { done, value } = await requestBodyReader.read();
+
+                           if (value) {
+                                requestBody.set(value, requestOffset);
+                                requestOffset += value.byteLength;
+                            }
+                            
+                            if (done) break;
+                        }
+                    }
+
+                    if(!requestBody) {
+                        requestBody = new Uint8Array();
+                    }
+
+                    var responseBody = null;
+                    
+                    if(response.body) {
+                        // The response body is an Uint8Array
+                        var responseBodyReader = response.clone().body.getReader();
+                        
+                        var responseLength = response.headers.get("content-length");
+                        var responseOffset = 0;                      
+                        var responseBody = new Uint8Array(responseLength);
+
+                        // Insert the chunks at their offset into the responseBody Uint8Array, to restore the original body again
+                        while (true) {
+                            var { done, value } = await responseBodyReader.read();
+
+                            if (value) {
+                                responseBody.set(value, responseOffset);
+                                responseOffset += value.byteLength;
+                            }
+                            
+                            if (done) break;
+                        }
+                    }
+                    
+                    if(!responseBody) {
+                        responseBody = new Uint8Array();
+                    }
+
+                    // Convert the (request/response) body to the required return type
+                    switch (node.returnFormat) {
+                        case "txt":
+                            requestToSend.body = requestBody.toString('utf8');
+                            responseToSend.body = responseBody.toString('utf8');
+                            break;
+                        case "bin":
+                            requestToSend.body = Buffer.from(requestBody);
+                            responseToSend.body = Buffer.from(responseBody);
+                            break;
+                        case "obj":
+                            if(requestBody.length > 0) {
+                                requestToSend.body = JSON.parse(requestBody);
+                            }
+                            else {
+                                requestToSend.body = {};
+                            }
+                            
+                            if(responseBody.length > 0) {
+                                responseToSend.body = JSON.parse(responseBody);
+                            }
+                            else {
+                                responseToSend.body = {};
+                            }
+                            break;
                     }
 
                     node.send({request: requestToSend, response: responseToSend, topic: "success"});
                 }
             })
-        
-            node.interceptor.apply();
+
             node.status({fill:"blue", shape:"dot", text:"listening"});
             node.listening = true;
         }
         
         function stopListening() {
-            node.interceptor.restore();
+            sharedMswjsInterceptor.stopListening(node.id);
             node.status({});
             node.listening = false;
         }
@@ -80,7 +220,7 @@
         node.on("input", function(msg) {
             // Start listening to http requests ...
             if(msg.payload == true) {
-                if (node.listening == true) {
+                if (sharedMswjsInterceptor.isListening(node.id)) {
                     node.warn("This node is already listening");
                     return;
                 }
@@ -90,7 +230,7 @@
 
             // Stop listening to http requests ...
             if(msg.payload == false) {
-                if (node.listening == false) {
+                if (!sharedMswjsInterceptor.isListening(node.id)) {
                     node.warn("This node has already stopped listening");
                     return;
                 }
