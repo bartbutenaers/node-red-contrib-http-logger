@@ -1,7 +1,7 @@
 # node-red-contrib-http-logger
 A Node Red node for logging HTTP (or HTTPS) requests and responses.
 
-This node is based on the [interceptors](https://www.npmjs.com/package/@mswjs/interceptors) library (Man In The Middle), a low-level HTTP/HTTPS/XHR/fetch request interception library.  This node can intercept both http and https requests and the related responses. 
+This node is based on the [interceptors](https://www.npmjs.com/package/@mswjs/interceptors) library, a low-level HTTP/HTTPS/XHR/fetch request interception library.  This node can intercept both http and https requests and their related responses. 
 
 ## Install
 Run the following npm command in your Node-RED user directory (typically ~/.node-red):
@@ -60,7 +60,10 @@ Which results in following debug panel entries:
 
 ![Return type debug](/images/listener_return_debug.png)
 
-## Example flow
+## Example flows
+
+### Multiple http-logger nodes
+
 Multiple http-logger nodes can be used simultaneously.  A different (url) filter can be specified in each of those nodes.
 
 Following example flow has one logger for hostname ```api.ipify.org``` and another logger for hostname ```ip.seeip.org```:
@@ -68,4 +71,13 @@ Following example flow has one logger for hostname ```api.ipify.org``` and anoth
 
 ```
 [{"id":"f57450ea.ac8b","type":"http-logger","z":"5a89baed.89e9c4","name":"","filter":"ipify","x":400,"y":980,"wires":[["f164a8b7.74cde8"]]},{"id":"1f25cbf8.71f354","type":"http request","z":"5a89baed.89e9c4","name":"","method":"GET","ret":"txt","paytoqs":false,"url":"https://api.ipify.org?format=json","tls":"","proxy":"","authType":"basic","x":390,"y":940,"wires":[["9f433261.35598"]]},{"id":"cedfb31a.2f4ee","type":"inject","z":"5a89baed.89e9c4","name":"Send request","topic":"","payload":"","payloadType":"date","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":940,"wires":[["1f25cbf8.71f354"]]},{"id":"9f433261.35598","type":"debug","z":"5a89baed.89e9c4","name":"Http response 1","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":600,"y":940,"wires":[]},{"id":"85b98128.01148","type":"inject","z":"5a89baed.89e9c4","name":"Start logging","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":980,"wires":[["f57450ea.ac8b"]]},{"id":"8b0fc961.02b618","type":"inject","z":"5a89baed.89e9c4","name":"Stop logging","topic":"","payload":"false","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":1020,"wires":[["f57450ea.ac8b"]]},{"id":"f164a8b7.74cde8","type":"debug","z":"5a89baed.89e9c4","name":"Intercepted http request 1","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":630,"y":980,"wires":[]},{"id":"58b2d51c.200b4c","type":"http-logger","z":"5a89baed.89e9c4","name":"","filter":"seeip","x":400,"y":1160,"wires":[["c35e45c7.b75fb8"]]},{"id":"ab3a938d.c4ed","type":"http request","z":"5a89baed.89e9c4","name":"","method":"GET","ret":"txt","paytoqs":false,"url":"https://ip.seeip.org/jsonip?","tls":"","proxy":"","authType":"basic","x":390,"y":1120,"wires":[["36675339.ca6cec"]]},{"id":"1ddffe5.a9a3302","type":"inject","z":"5a89baed.89e9c4","name":"Send request","topic":"","payload":"","payloadType":"date","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":1120,"wires":[["ab3a938d.c4ed"]]},{"id":"36675339.ca6cec","type":"debug","z":"5a89baed.89e9c4","name":"Http response 2","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":600,"y":1120,"wires":[]},{"id":"701fb48f.d9e74c","type":"inject","z":"5a89baed.89e9c4","name":"Start logging","topic":"","payload":"true","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":1160,"wires":[["58b2d51c.200b4c"]]},{"id":"50fcbe2d.b7f8b","type":"inject","z":"5a89baed.89e9c4","name":"Stop logging","topic":"","payload":"false","payloadType":"bool","repeat":"","crontab":"","once":false,"onceDelay":0.1,"x":210,"y":1200,"wires":[["58b2d51c.200b4c"]]},{"id":"c35e45c7.b75fb8","type":"debug","z":"5a89baed.89e9c4","name":"Intercepted http request 2","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","x":630,"y":1160,"wires":[]},{"id":"94cb8a6e.256c18","type":"comment","z":"5a89baed.89e9c4","name":"Get WAN address from https://api.ipify.org?format=json","info":"","x":320,"y":900,"wires":[]},{"id":"c10c9b7e.b4a5e8","type":"comment","z":"5a89baed.89e9c4","name":"Get WAN address from https://ip.seeip.org/jsonip?","info":"","x":310,"y":1080,"wires":[]}]
+```
+
+### Intercepting images
+
+This node can also intercept responses that contain binary data like e.g. images.  The data chunks will be recombined (in a performant way) to recreate the original response body.  The following example flow demonstrates how to intercept images arriving from a public webcam:
+
+![interceptor](https://user-images.githubusercontent.com/14224149/202565694-36449f2d-767d-45a8-8f40-0e0c101b2a13.gif)
+```
+[{"id": "5debdd9233a2926a","type": "http request","z": "8b52e098cd5f73fd","name": "","method": "GET","ret": "bin","paytoqs": "ignore","url": "http://webcam1.comune.ra.it/record/current.jpg","tls": "","persist": false,"proxy": "","insecureHTTPParser": false,"authType": "","senderr": false,"headers": [],"x": 1650,"y": 1160,"wires": [["fdadb18dc03f3e40"]]},{"id": "607cba4a30069016","type": "inject","z": "8b52e098cd5f73fd","name": "Fetch image","props": [],"repeat": "","crontab": "","once": false,"onceDelay": 0.1,"topic": "","x": 1450,"y": 1160,"wires": [["5debdd9233a2926a"]]},{"id": "09ec9937af9f99ac","type": "inject","z": "8b52e098cd5f73fd","name": "Start intercepting","props": [{"p": "payload"},{"p": "topic","vt": "str"}],"repeat": "","crontab": "","once": false,"onceDelay": 0.1,"topic": "","payload": "true","payloadType": "bool","x": 1460,"y": 1480,"wires": [["75388891e516c785"]]},{"id": "75388891e516c785","type": "http-logger","z": "8b52e098cd5f73fd","name": "Intercept bekescsaba","filter": "webcam1.comune","returnFormat": "bin","x": 1680,"y": 1480,"wires": [["2ac8858cead8cec5"]]},{"id": "2ac8858cead8cec5","type": "image","z": "8b52e098cd5f73fd","name": "Show intercepted response","width": "320","data": "response.body","dataType": "msg","svg": "svg","svgType": "msg","thumbnail": false,"active": true,"pass": false,"outputs": 0,"x": 1940,"y": 1480,"wires": []},{"id": "fdadb18dc03f3e40","type": "image","z": "8b52e098cd5f73fd","name": "Show response","width": "320","data": "payload","dataType": "msg","svg": "svg","svgType": "msg","thumbnail": false,"active": true,"pass": false,"outputs": 0,"x": 1860,"y": 1160,"wires": []}]
 ```
